@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISBN Scanner</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <h1>ISBN Book Lookup</h1>
+    <input type="text" id="isbnInput" placeholder="Enter ISBN (10 or 13 digits)">
+    <button onclick="lookupBook()">Search</button>
+    <button id="scanBtn" onclick="toggleScan()">Scan Barcode</button>
+    
+    <div id="scanner-container" style="display:none; margin-top:10px;">
+        <p id="scanStatus">Point camera at book barcode (ISBN)...</p>
+        <div id="scanner" style="width:100%; max-width:500px;"></div>
+    </div>
+    
+    <div id="result"></div>
+
+    <h2>My Collection</h2>
+    <button onclick="loadCollection()">Refresh</button>
+    <button onclick="exportCollection()">Export</button>
+    <button onclick="importCollection()">Import</button>
+    <input type="file" id="importFile" style="display:none" onchange="handleImport(this)">
+    <div id="collection"></div>
+
+    <script src="bookLookup.js"></script>
+    <script src="scanner.js"></script>
+    <script>
+        loadCollection();
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
