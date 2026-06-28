@@ -63,6 +63,10 @@
                 <button onclick="showQrCode()" title="Show QR code">&#128260;</button>
                 <button onclick="startQrSyncScan()" title="Scan QR code to join room">&#128247;</button>
             </div>
+            <div class="sync-room-row" id="syncPwdRow">
+                <input type="password" id="syncPwdInput" readonly value="" style="font-family:monospace;font-size:13px;letter-spacing:0.5px;">
+                <button id="syncRevealPwdBtn" onclick="togglePwdReveal()" title="Show/hide password">&#128065;</button>
+            </div>
             <div class="sync-actions" id="syncActions" style="display:none;">
                 <button id="syncJoinBtn" onclick="joinRoom()">Join Room</button>
                 <button id="syncCancelBtn" onclick="cancelSyncEdit()">Cancel</button>
@@ -136,19 +140,22 @@
             }
         })
 
+        let _pwdRevealed = false
+
         window.toggleSyncPanel = function() {
             const panel = document.getElementById('syncPanel')
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none'
             if (panel.style.display === 'block' && window.syncAPI) {
-                const input = document.getElementById('syncRoomInput')
-                if (input) input.value = window.syncAPI.getRoom() || ''
+                document.getElementById('syncRoomInput').value = window.syncAPI.getRoom() || ''
+                document.getElementById('syncPwdInput').value = window.syncAPI.getPassword() || ''
             }
         }
 
         async function updateSyncUI(status) {
             const dot = document.getElementById('syncDot')
             const text = document.getElementById('syncStatusText')
-            const input = document.getElementById('syncRoomInput')
+            const roomInput = document.getElementById('syncRoomInput')
+            const pwdInput = document.getElementById('syncPwdInput')
             if (status.connected) {
                 dot.style.background = '#4CAF50'
                 if (text) text.textContent = `Connected — ${status.peers} device${status.peers === 1 ? '' : 's'}`
@@ -159,7 +166,8 @@
                 dot.style.background = '#999'
                 if (text) text.textContent = 'Disconnected'
             }
-            if (input && status.room) input.value = status.room
+            if (roomInput && status.room) roomInput.value = status.room
+            if (pwdInput && window.syncAPI) pwdInput.value = window.syncAPI.getPassword() || ''
         }
 
         window.toggleSyncEdit = function() {
@@ -187,22 +195,29 @@
         }
 
         window.joinRoom = function() {
-            const room = document.getElementById('syncRoomInput').value.trim()
-            if (!room || !window.syncAPI) return
-            window.syncAPI.setRoom(room)
+            if (!window.syncAPI) return
+            const val = document.getElementById('syncRoomInput').value.trim()
+            if (!val) return
+            window.syncAPI.setRoom(val)
             cancelSyncEdit()
+        }
+
+        window.togglePwdReveal = function() {
+            const input = document.getElementById('syncPwdInput')
+            _pwdRevealed = !_pwdRevealed
+            input.type = _pwdRevealed ? 'text' : 'password'
         }
 
         window.shareRoom = function() {
             if (!window.syncAPI) return
-            const room = window.syncAPI.getRoom()
-            if (!room) return
+            const code = window.syncAPI.getRoomCode()
+            if (!code) return
             if (navigator.share) {
-                navigator.share({ title: 'Join my book collection', text: `Join my ISBN Scanner sync room: ${room}` })
+                navigator.share({ title: 'Join my book collection', text: `Join my ISBN Scanner sync room: ${code}` })
             } else {
-                navigator.clipboard.writeText(room)
+                navigator.clipboard.writeText(code)
                     .then(() => showToast('Room code copied!', 'success'))
-                    .catch(() => prompt('Share this room code with another device:', room))
+                    .catch(() => prompt('Share this room code with another device:', code))
             }
         }
 
@@ -210,13 +225,13 @@
 
         window.showQrCode = function() {
             if (!window.syncAPI) return
-            const room = window.syncAPI.getRoom()
-            if (!room) return
+            const code = window.syncAPI.getRoomCode()
+            if (!code) return
             const container = document.getElementById('qrCodeContainer')
             container.innerHTML = ''
             if (qrCodeInstance) { qrCodeInstance.clear(); qrCodeInstance = null }
-            qrCodeInstance = new QRCode(container, { text: room, width: 200, height: 200 })
-            document.getElementById('qrRoomCode').textContent = room
+            qrCodeInstance = new QRCode(container, { text: code, width: 200, height: 200 })
+            document.getElementById('qrRoomCode').textContent = code
             document.getElementById('qrModal').classList.add('active')
             document.body.style.overflow = 'hidden'
         }
@@ -241,9 +256,9 @@
                     { facingMode: 'environment' },
                     { fps: 10, qrbox: { width: 250, height: 250 } },
                     (decodedText) => {
-                        const room = decodedText.trim()
-                        if (room) {
-                            window.syncAPI.setRoom(room)
+                        const val = decodedText.trim()
+                        if (val) {
+                            window.syncAPI.setRoom(val)
                             stopQrSyncScan()
                         }
                     },
