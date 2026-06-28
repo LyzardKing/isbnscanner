@@ -87,7 +87,7 @@ async function lookupBook() {
         return;
     }
 
-    resultDiv.innerHTML = '<div class="loading">🔍 Searching...</div>';
+    resultDiv.innerHTML = '<div class="loading">&#128269; Searching...</div>';
     currentBook = null;
     currentSource = null;
 
@@ -105,7 +105,7 @@ async function lookupBook() {
         }
     }
 
-    resultDiv.innerHTML = '<div class="book-card"><p style="color: #ff9800;">📚 Book not found in any database.</p></div>';
+    resultDiv.innerHTML = '<div class="book-card"><p style="color: #ff9800;">&#128218; Book not found in any database.</p></div>';
 }
 
 function displayBook(book, source) {
@@ -136,9 +136,9 @@ function displayBook(book, source) {
     const isbn = document.getElementById('isbnInput').value.replace(/-/g, '');
     const exists = window.syncAPI && window.syncAPI.getBook(isbn);
     if (exists) {
-        html += '<button disabled style="background:#4CAF50;opacity:0.6;">✔ Already in Collection</button>';
+        html += '<button disabled style="background:#4CAF50;opacity:0.6;">&#10004; Already in Collection</button>';
     } else {
-        html += '<button onclick="saveToCollection()">➕ Add to Collection</button>';
+        html += '<button onclick="saveToCollection()">&#10133; Add to Collection</button>';
     }
     html += '</div>';
     
@@ -183,7 +183,7 @@ async function loadCollection() {
             : 'My Collection'
 
         if (collection.length === 0) {
-            collectionDiv.innerHTML = '<div class="empty-state">📚 No books in collection yet.<br>Search and add your first book!</div>';
+            collectionDiv.innerHTML = '<div class="empty-state">&#128218; No books in collection yet.<br>Search and add your first book!</div>';
             return;
         }
 
@@ -194,7 +194,7 @@ async function loadCollection() {
         collection.forEach((book) => {
             const coverImg = book.cover 
                 ? `<img src="${book.cover}" alt="${book.title}">` 
-                : '<div style="width:60px;height:80px;background:#e0e0e0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;">📖</div>';
+                : '<div style="width:60px;height:80px;background:#e0e0e0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;">&#128214;</div>';
             
             html += `<div class="collection-item" style="cursor: pointer;" onclick="openBookModal('${book.isbn}')">
                 ${coverImg}
@@ -202,7 +202,7 @@ async function loadCollection() {
                     <div class="collection-item-title">${book.title || 'Unknown Title'}</div>
                     <div class="collection-item-author">${book.authors || 'Unknown Author'}</div>
                 </div>
-                <button onclick="event.stopPropagation(); removeFromCollection('${book.isbn}')">🗑️</button>
+                <button onclick="event.stopPropagation(); removeFromCollection('${book.isbn}')">&#128465;</button>
             </div>`;
         });
         html += '</div>';
@@ -288,7 +288,7 @@ async function resyncCollection() {
 
     _resyncCancelled = false;
     const btn = document.getElementById('resyncBtn');
-    btn.textContent = '⏹ Stop';
+    btn.innerHTML = '&#9209; Stop';
     btn.onclick = () => { _resyncCancelled = true; };
 
     const resultDiv = document.getElementById('result');
@@ -298,7 +298,7 @@ async function resyncCollection() {
         if (_resyncCancelled) break;
 
         const book = missing[i];
-        resultDiv.innerHTML = `<div class="loading">🔄 Resyncing ${i + 1}/${missing.length}: ${book.title || book.isbn}...</div>`;
+        resultDiv.innerHTML = `<div class="loading">&#128260; Resyncing ${i + 1}/${missing.length}: ${book.title || book.isbn}...</div>`;
 
         for (const provider of providers) {
             try {
@@ -322,13 +322,13 @@ async function resyncCollection() {
         }
     }
 
-    btn.textContent = '🔄 Resync';
+    btn.innerHTML = '&#128260; Resync';
     btn.onclick = resyncCollection;
     loadCollection();
 
     resultDiv.innerHTML = _resyncCancelled
-        ? `<div class="loading">⏹ Resync stopped. Updated ${updated} book(s).</div>`
-        : `<div class="loading">✅ Resync complete. Updated ${updated} book(s).</div>`;
+        ? `<div class="loading">&#9209; Resync stopped. Updated ${updated} book(s).</div>`
+        : `<div class="loading">&#9989; Resync complete. Updated ${updated} book(s).</div>`;
 
     setTimeout(() => { resultDiv.innerHTML = ''; }, 4000);
 }
@@ -349,7 +349,7 @@ async function openBookModal(isbn) {
         if (book.cover) {
             coverDiv.innerHTML = `<img src="${book.cover}" alt="${book.title}">`
         } else {
-            coverDiv.innerHTML = '<div style="font-size: 80px;">📖</div>'
+            coverDiv.innerHTML = '<div style="font-size: 80px;">&#128214;</div>'
         }
 
         const infoDiv = document.getElementById('modalInfo')
@@ -451,5 +451,9 @@ async function deleteFromModal() {
 
 // Close modal on Escape key
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') {
+        closeModal();
+        const sm = document.getElementById('scannerModal');
+        if (sm && sm.classList.contains('active')) stopScanner();
+    }
 });

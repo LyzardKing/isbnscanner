@@ -6,20 +6,21 @@
     <title>ISBN Scanner</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-    <h1>📚 ISBN Book Lookup</h1>
+    <h1>&#128218; ISBN Book Lookup</h1>
     <div id="syncBadge" onclick="toggleSyncPanel()" title="Sync settings">
-        📡 <span class="sync-dot" id="syncDot" style="background:#999;"></span>
+        &#128225; <span class="sync-dot" id="syncDot" style="background:#999;"></span>
     </div>
     
     <div class="search-section">
         <input type="text" id="isbnInput" placeholder="Enter ISBN (10 or 13 digits)" autocomplete="off" onkeypress="if(event.key==='Enter') lookupBook()">
         <div class="button-group">
-            <button onclick="lookupBook()">🔍 Search</button>
-            <button id="scanBtn" onclick="toggleScan()">📷 Scan</button>
+            <button onclick="lookupBook()">&#128269; Search</button>
+            <button id="scanBtn" onclick="toggleScan()">&#128247; Scan</button>
         </div>
     </div>
     
@@ -27,7 +28,7 @@
         <div class="modal-content" style="max-width:500px;">
             <div class="modal-header">
                 <h2 style="margin:0;">Scan ISBN</h2>
-                <button class="modal-close" onclick="stopScanner()">✕</button>
+                <button class="modal-close" onclick="stopScanner()">&#10005;</button>
             </div>
             <div class="modal-body" style="padding:20px;">
                 <p id="scanStatus" style="margin:0 0 12px;text-align:center;font-size:14px;color:#666;">Point camera at book barcode...</p>
@@ -40,26 +41,26 @@
 
     <h2>My Collection</h2>
     <div class="export-import-group">
-        <button onclick="exportCollection()">💾 Export</button>
-        <button onclick="importCollection()">📥 Import</button>
-        <button id="resyncBtn" onclick="resyncCollection()">🔄 Resync</button>
+        <button onclick="exportCollection()">&#128190; Export</button>
+        <button onclick="importCollection()">&#128229; Import</button>
+        <button id="resyncBtn" onclick="resyncCollection()">&#128260; Resync</button>
     </div>
     <input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(this)">
     <div id="syncPanel" class="sync-dropdown" style="display:none;">
         <div class="sync-panel-header">
-            <span>📡 Sync</span>
+            <span>&#128225; Sync</span>
             <span class="sync-status">
                 <span id="syncStatusText"></span>
-                <button onclick="toggleSyncPanel()" class="sync-panel-close">✕</button>
+                <button onclick="toggleSyncPanel()" class="sync-panel-close">&#10005;</button>
             </span>
         </div>
         <div class="sync-body">
             <div class="sync-room-row">
                 <input type="text" id="syncRoomInput" readonly value="">
                 <button id="syncEditBtn" onclick="toggleSyncEdit()">Edit</button>
-                <button id="syncShareBtn" onclick="shareRoom()" title="Copy room code">📋</button>
-                <button onclick="showQrCode()" title="Show QR code">🔄</button>
-                <button onclick="startQrSyncScan()" title="Scan QR code to join room">📷</button>
+                <button id="syncShareBtn" onclick="shareRoom()" title="Copy room code">&#128203;</button>
+                <button onclick="showQrCode()" title="Show QR code">&#128260;</button>
+                <button onclick="startQrSyncScan()" title="Scan QR code to join room">&#128247;</button>
             </div>
             <div class="sync-actions" id="syncActions" style="display:none;">
                 <button id="syncJoinBtn" onclick="joinRoom()">Join Room</button>
@@ -70,7 +71,7 @@
     <div id="qrScannerContainer" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <p style="margin:0;font-size:14px;color:#666;">Point camera at QR code</p>
-            <button onclick="stopQrSyncScan()" style="padding:6px 12px;font-size:13px;background:#f44336;">✕</button>
+            <button onclick="stopQrSyncScan()" style="padding:6px 12px;font-size:13px;background:#f44336;">&#10005;</button>
         </div>
         <div id="qrScannerElement"></div>
     </div>
@@ -79,7 +80,7 @@
         <div class="modal-content" style="max-width:360px;text-align:center;">
             <div class="modal-header">
                 <h2 style="margin:0;">Sync Room QR</h2>
-                <button class="modal-close" onclick="closeQrModal()">✕</button>
+                <button class="modal-close" onclick="closeQrModal()">&#10005;</button>
             </div>
             <div class="modal-body" style="padding:24px;">
                 <div id="qrCodeContainer" style="margin:0 auto 16px;width:200px;height:200px;"></div>
@@ -94,7 +95,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle"></h2>
-                <button class="modal-close" onclick="closeModal()">✕</button>
+                <button class="modal-close" onclick="closeModal()">&#10005;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-cover" id="modalCover"></div>
@@ -103,7 +104,7 @@
             </div>
             <div class="modal-footer">
                 <button onclick="closeModal()" style="background: #666;">Close</button>
-                <button onclick="deleteFromModal()" style="background: #f44336;">🗑️ Delete</button>
+                <button onclick="deleteFromModal()" style="background: #f44336;">&#128465; Delete</button>
             </div>
         </div>
     </div>
