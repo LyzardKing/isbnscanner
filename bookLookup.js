@@ -3,32 +3,33 @@ async function saveBook(d) { return window.syncAPI.saveBook(d) }
 async function deleteBook(i) { return window.syncAPI.deleteBook(i) }
 async function clearAllBooks() { return window.syncAPI.clearAllBooks() }
 
-const providers = [
-    {
-        name: 'Google Books',
-        search: async function(isbn) {
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-            if (!response.ok) {
-                throw new Error(`Google Books error: ${response.status}`);
-            }
-            const data = await response.json();
+function isValidISBN(str) {
+    const cleaned = str.replace(/[-\s]/g, '').toUpperCase();
 
-            if (!data.items || data.items.length === 0) {
-                return null;
-            }
-
-            const book = data.items[0].volumeInfo;
-            return {
-                title: book.title,
-                authors: book.authors || [],
-                publisher: book.publisher,
-                publishedDate: book.publishedDate,
-                pageCount: book.pageCount,
-                description: book.description,
-                cover: book.imageLinks ? book.imageLinks.thumbnail : null
-            };
+    if (cleaned.length === 10) {
+        let sum = 0;
+        for (let i = 0; i < 10; i++) {
+            const c = cleaned[i];
+            if (i < 9 && !/\d/.test(c)) return false;
+            if (i === 9 && c !== 'X' && !/\d/.test(c)) return false;
+            sum += (10 - i) * (c === 'X' ? 10 : parseInt(c));
         }
-    },
+        return sum % 11 === 0;
+    }
+
+    if (cleaned.length === 13) {
+        if (!/^\d{13}$/.test(cleaned)) return false;
+        let sum = 0;
+        for (let i = 0; i < 13; i++) {
+            sum += parseInt(cleaned[i]) * (i % 2 === 0 ? 1 : 3);
+        }
+        return sum % 10 === 0;
+    }
+
+    return false;
+}
+
+const providers = [
     {
         name: 'Open Library',
         search: async function(isbn) {
@@ -71,6 +72,92 @@ const providers = [
                 description,
                 cover: book.cover ? book.cover.small : null
             };
+        },
+        searchByTitle: async function(query) {
+            const q = encodeURIComponent(query).replace(/%20/g, '+');
+            const response = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=10`);
+            const data = await response.json();
+            if (!data.docs || data.docs.length === 0) return null;
+
+            function extractISBN(doc) {
+                if (doc.isbn && doc.isbn[0]) return doc.isbn[0];
+                if (doc.ia) {
+                    for (const entry of doc.ia) {
+                        const m = entry.match(/^isbn_(\d{9,13}[Xx]?)$/);
+                        if (m) return m[1];
+                    }
+                }
+                return null;
+            }
+
+            return data.docs.map(doc => ({
+                title: doc.title,
+                authors: doc.author_name || [],
+                publisher: doc.publisher ? doc.publisher[0] : null,
+                publishedDate: doc.first_publish_year ? String(doc.first_publish_year) : null,
+                pageCount: doc.number_of_pages_median,
+                isbn: extractISBN(doc),
+                cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : null,
+                coverEditionKey: doc.cover_edition_key || null,
+                workKey: doc.key || null
+            }));
+        }
+    },
+    {
+        name: 'Google Books',
+        search: async function(isbn) {
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+            if (!response.ok) {
+                throw new Error(`Google Books error: ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data.items || data.items.length === 0) {
+                return null;
+            }
+
+            const book = data.items[0].volumeInfo;
+            return {
+                title: book.title,
+                authors: book.authors || [],
+                publisher: book.publisher,
+                publishedDate: book.publishedDate,
+                pageCount: book.pageCount,
+                description: book.description,
+                cover: book.imageLinks ? book.imageLinks.thumbnail : null
+            };
+        },
+        searchByTitle: async function(query) {
+            const q = encodeURIComponent(query).replace(/%20/g, '+');
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
+            if (!response.ok) {
+                throw new Error(`Google Books error: ${response.status}`);
+            }
+            const data = await response.json();
+            if (!data.items || data.items.length === 0) return null;
+
+            return data.items
+                .map(item => {
+                    const book = item.volumeInfo;
+                    let isbn = null;
+                    if (book.industryIdentifiers) {
+                        const id13 = book.industryIdentifiers.find(i => i.type === 'ISBN_13');
+                        const id10 = book.industryIdentifiers.find(i => i.type === 'ISBN_10');
+                        isbn = id13 ? id13.identifier : (id10 ? id10.identifier : null);
+                    }
+                    return { book, isbn };
+                })
+                .filter(({ isbn }) => isbn)
+                .map(({ book, isbn }) => ({
+                    title: book.title,
+                    authors: book.authors || [],
+                    publisher: book.publisher,
+                    publishedDate: book.publishedDate,
+                    pageCount: book.pageCount,
+                    description: book.description,
+                    isbn,
+                    cover: book.imageLinks ? book.imageLinks.thumbnail : null
+                }));
         }
     }
 ];
@@ -78,26 +165,60 @@ const providers = [
 let currentBook = null;
 let currentSource = null;
 
+let _lastSearchResults = null;
+
 async function lookupBook() {
-    const isbn = document.getElementById('isbnInput').value.replace(/-/g, '');
+    const query = document.getElementById('isbnInput').value.trim();
     const resultDiv = document.getElementById('result');
-    
-    if (!isbn || (isbn.length !== 10 && isbn.length !== 13)) {
-        resultDiv.innerHTML = '<div class="book-card"><p style="color: #f44336;">Please enter a valid 10 or 13 digit ISBN.</p></div>';
+
+    if (!query) {
+        resultDiv.innerHTML = '<div class="book-card"><p style="color: #f44336;">Please enter an ISBN or title.</p></div>';
         return;
     }
 
+    const cleaned = query.replace(/[-\s]/g, '');
+    const looksLikeISBN = /^\d{9,13}[Xx]?$/.test(cleaned);
+
+    if (looksLikeISBN) {
+        if (!isValidISBN(cleaned)) {
+            resultDiv.innerHTML = '<div class="book-card"><p style="color: #f44336;">Invalid ISBN check digit.</p></div>';
+            return;
+        }
+
+        resultDiv.innerHTML = '<div class="loading">&#128269; Searching...</div>';
+        currentBook = null;
+        currentSource = null;
+
+        for (const provider of providers) {
+            try {
+                const book = await provider.search(cleaned);
+                if (book) {
+                    currentBook = { ...book, isbn: cleaned };
+                    currentSource = provider.name;
+                    displayBook(currentBook, provider.name);
+                    return;
+                }
+            } catch (error) {
+                console.error(`${provider.name} error:`, error);
+            }
+        }
+
+        resultDiv.innerHTML = '<div class="book-card"><p style="color: #ff9800;">&#128218; Book not found in any database.</p></div>';
+        return;
+    }
+
+    // Title search
     resultDiv.innerHTML = '<div class="loading">&#128269; Searching...</div>';
     currentBook = null;
     currentSource = null;
+    _lastSearchResults = null;
 
     for (const provider of providers) {
         try {
-            const book = await provider.search(isbn);
-            if (book) {
-                currentBook = book;
-                currentSource = provider.name;
-                displayBook(book, provider.name);
+            const books = await provider.searchByTitle(query);
+            if (books && books.length > 0) {
+                _lastSearchResults = { books, source: provider.name };
+                displayBookList(books, provider.name);
                 return;
             }
         } catch (error) {
@@ -105,7 +226,7 @@ async function lookupBook() {
         }
     }
 
-    resultDiv.innerHTML = '<div class="book-card"><p style="color: #ff9800;">&#128218; Book not found in any database.</p></div>';
+    resultDiv.innerHTML = '<div class="book-card"><p style="color: #ff9800;">&#128218; No books found.</p></div>';
 }
 
 function displayBook(book, source) {
@@ -133,7 +254,7 @@ function displayBook(book, source) {
         html += '<p>' + desc + '</p>';
     }
     
-    const isbn = document.getElementById('isbnInput').value.replace(/-/g, '');
+    const isbn = book.isbn || document.getElementById('isbnInput').value.replace(/-/g, '');
     const exists = window.syncAPI && window.syncAPI.getBook(isbn);
     if (exists) {
         html += '<button disabled style="background:#4CAF50;opacity:0.6;">&#10004; Already in Collection</button>';
@@ -145,6 +266,34 @@ function displayBook(book, source) {
     document.getElementById('result').innerHTML = html;
 }
 
+function displayBookList(books, source) {
+    let html = `<div class="source-tag" style="margin:16px 16px 0;">Source: ${source}</div>`;
+    html += '<div class="collection-grid" style="padding:16px;">';
+
+    books.forEach((book, i) => {
+        const coverImg = book.cover 
+            ? `<img src="${book.cover}" alt="${book.title}">` 
+            : '<div style="width:60px;height:80px;background:var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;">&#128214;</div>';
+
+        const exists = book.isbn && window.syncAPI && window.syncAPI.getBook(book.isbn);
+        const addBtn = exists
+            ? '<button disabled style="background:#4CAF50;opacity:0.6;">&#10004; In Collection</button>'
+            : `<button onclick="saveFromSearchList(${i})">&#10133; Add</button>`;
+
+        html += `<div class="collection-item">
+            ${coverImg}
+            <div class="collection-item-info">
+                <div class="collection-item-title">${book.title || 'Unknown Title'}</div>
+                <div class="collection-item-author">${book.authors ? book.authors.join(', ') : 'Unknown Author'}</div>
+            </div>
+            ${addBtn}
+        </div>`;
+    });
+
+    html += '</div>';
+    document.getElementById('result').innerHTML = html;
+}
+
 async function saveToCollection() {
     const isbn = document.getElementById('isbnInput').value.replace(/-/g, '');
     if (!currentBook || !isbn) return;
@@ -152,7 +301,7 @@ async function saveToCollection() {
     const bookData = {
         isbn: isbn,
         title: currentBook.title,
-        authors: currentBook.authors.join(', '),
+        authors: Array.isArray(currentBook.authors) ? currentBook.authors.join(', ') : currentBook.authors,
         publisher: currentBook.publisher,
         publishedDate: currentBook.publishedDate,
         pageCount: currentBook.pageCount,
@@ -166,6 +315,56 @@ async function saveToCollection() {
         await saveBook(bookData);
         showToast('Added to collection!', 'success');
         loadCollection();
+    } catch (error) {
+        console.error('Error saving book:', error);
+        showToast('Failed to save book to collection', 'error');
+    }
+}
+
+async function saveFromSearchList(index) {
+    if (!_lastSearchResults) return;
+
+    const entry = _lastSearchResults.books[index];
+    const source = _lastSearchResults.source;
+    if (!entry) return;
+
+    let isbn = entry.isbn;
+
+    if (!isbn && entry.coverEditionKey) {
+        try {
+            const res = await fetch(`https://openlibrary.org/books/${entry.coverEditionKey}.json`);
+            const data = await res.json();
+            isbn = data.isbn_13?.[0] || data.isbn_10?.[0] || null;
+        } catch (e) {
+            console.error('Failed to fetch ISBN from edition:', e);
+        }
+    }
+
+    if (!isbn) {
+        showToast('Cannot add book without ISBN.', 'error');
+        return;
+    }
+
+    _lastSearchResults.books[index] = { ...entry, isbn };
+
+    const bookData = {
+        isbn,
+        title: entry.title,
+        authors: Array.isArray(entry.authors) ? entry.authors.join(', ') : (entry.authors || ''),
+        publisher: entry.publisher,
+        publishedDate: entry.publishedDate,
+        pageCount: entry.pageCount,
+        description: entry.description,
+        cover: entry.cover,
+        source: source,
+        addedAt: new Date().toISOString()
+    };
+
+    try {
+        await saveBook(bookData);
+        showToast('Added to collection!', 'success');
+        loadCollection();
+        displayBookList(_lastSearchResults.books, _lastSearchResults.source);
     } catch (error) {
         console.error('Error saving book:', error);
         showToast('Failed to save book to collection', 'error');
