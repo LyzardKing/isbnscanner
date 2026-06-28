@@ -6,8 +6,7 @@ const ASSETS = [
     'sync.js',
     'styles.css',
     'manifest.json',
-    'icon-192.png',
-    'icon-512.png'
+    'icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
