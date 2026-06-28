@@ -2,12 +2,77 @@
     box-sizing: border-box;
 }
 
+:root {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --text: #333333;
+    --text-muted: #666666;
+    --text-dim: #999999;
+    --text-heading: #1a1a1a;
+    --border: #e0e0e0;
+    --primary: #2196F3;
+    --green: #4CAF50;
+    --red: #f44336;
+    --gray: #666666;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.15);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.2);
+    --modal-overlay: rgba(0,0,0,0.7);
+    --source-bg: #e3f2fd;
+    --source-text: #1976D2;
+    --modal-close-bg: #f5f5f5;
+    --modal-close-hover: #e0e0e0;
+    --modal-header-border: #e0e0e0;
+    --hover-bg: #e8e8e8;
+}
+
+[data-theme="dark"] {
+    --bg: #121212;
+    --surface: #1e1e1e;
+    --text: #e0e0e0;
+    --text-muted: #999999;
+    --text-dim: #666666;
+    --text-heading: #ffffff;
+    --border: #333333;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.5);
+    --modal-overlay: rgba(0,0,0,0.85);
+    --source-bg: #1a3a5c;
+    --source-text: #64b5f6;
+    --modal-close-bg: #333;
+    --modal-close-hover: #444;
+    --modal-header-border: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #121212;
+        --surface: #1e1e1e;
+        --text: #e0e0e0;
+        --text-muted: #999999;
+        --text-dim: #666666;
+        --text-heading: #ffffff;
+        --border: #333333;
+        --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+        --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+        --shadow-lg: 0 4px 16px rgba(0,0,0,0.5);
+        --modal-overlay: rgba(0,0,0,0.85);
+        --source-bg: #1a3a5c;
+        --source-text: #64b5f6;
+        --modal-close-bg: #333;
+        --modal-close-hover: #444;
+    --modal-header-border: #333;
+    --hover-bg: #333333;
+    }
+}
+
 body { 
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
     margin: 0;
     padding: 16px;
-    background: #f5f5f5;
-    color: #333;
+    background: var(--bg);
+    color: var(--text);
     max-width: 800px;
     margin: 0 auto;
     position: relative;
@@ -17,7 +82,7 @@ h1 {
     font-size: 24px;
     margin: 0 0 20px 0;
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--text-heading);
 }
 #syncBadge {
     position: absolute;
@@ -30,14 +95,14 @@ h1 {
     gap: 6px;
     padding: 6px 10px;
     border-radius: 10px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
     z-index: 100;
     user-select: none;
     line-height: 1;
 }
 #syncBadge:hover {
-    background: #f0f0f0;
+    background: var(--hover-bg);
 }
 .sync-dropdown {
     position: absolute;
@@ -45,9 +110,9 @@ h1 {
     right: 16px;
     width: 380px;
     max-width: calc(100vw - 32px);
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
     z-index: 100;
     padding: 16px;
 }
@@ -70,14 +135,14 @@ h2 {
     font-size: 20px;
     margin: 32px 0 16px 0;
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--text-heading);
 }
 
 .search-section {
-    background: white;
+    background: var(--surface);
     padding: 16px;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 20px;
 }
 
@@ -85,7 +150,7 @@ input[type="text"] {
     font-size: 16px;
     padding: 14px;
     width: 100%;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--border);
     border-radius: 8px;
     margin-bottom: 12px;
     font-family: inherit;
@@ -155,10 +220,10 @@ button:disabled {
 }
 
 #result {
-    background: white;
+    background: var(--surface);
     padding: 0;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 20px;
 }
 
@@ -181,7 +246,7 @@ button:disabled {
 }
 
 .book-card strong {
-    color: #666;
+    color: var(--text-muted);
     font-weight: 600;
 }
 
@@ -189,7 +254,7 @@ button:disabled {
     max-width: 100%;
     border-radius: 8px;
     margin: 16px 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
 }
 
 .book-card button {
@@ -201,8 +266,8 @@ button:disabled {
     display: inline-block;
     font-size: 12px;
     padding: 4px 12px;
-    background: #e3f2fd;
-    color: #1976D2;
+    background: var(--source-bg);
+    color: var(--source-text);
     border-radius: 20px;
     margin-bottom: 12px;
     font-weight: 600;
@@ -214,10 +279,10 @@ button:disabled {
 }
 
 .collection-item {
-    background: white;
+    background: var(--surface);
     padding: 16px;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
     display: grid;
     grid-template-columns: 60px 1fr auto;
     gap: 12px;
@@ -246,7 +311,7 @@ button:disabled {
 
 .collection-item-author {
     font-size: 14px;
-    color: #666;
+    color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -262,13 +327,13 @@ button:disabled {
 .empty-state {
     text-align: center;
     padding: 40px 20px;
-    color: #999;
+    color: var(--text-dim);
 }
 
 .loading {
     text-align: center;
     padding: 20px;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .modal {
@@ -278,7 +343,7 @@ button:disabled {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--modal-overlay);
     z-index: 1000;
     overflow-y: auto;
     padding: 20px;
@@ -292,7 +357,7 @@ button:disabled {
 }
 
 .modal-content {
-    background: white;
+    background: var(--surface);
     border-radius: 16px;
     max-width: 600px;
     width: 100%;
@@ -304,13 +369,13 @@ button:disabled {
 
 .modal-header {
     padding: 20px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: start;
     position: sticky;
     top: 0;
-    background: white;
+    background: var(--surface);
     border-radius: 16px 16px 0 0;
     z-index: 10;
 }
@@ -323,7 +388,7 @@ button:disabled {
 }
 
 .modal-close {
-    background: #f5f5f5;
+    background: var(--modal-close-bg);
     border: none;
     width: 32px;
     height: 32px;
@@ -338,7 +403,7 @@ button:disabled {
 }
 
 .modal-close:hover {
-    background: #e0e0e0;
+    background: var(--modal-close-hover);
 }
 
 .modal-body {
@@ -369,24 +434,24 @@ button:disabled {
 
 .modal-info-label {
     font-weight: 600;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .modal-info-value {
-    color: #333;
+    color: var(--text);
 }
 
 .modal-description {
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--border);
     line-height: 1.6;
-    color: #555;
+    color: var(--text-muted);
 }
 
 .modal-footer {
     padding: 16px 20px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--border);
     display: flex;
     gap: 10px;
 }
@@ -453,10 +518,10 @@ button:disabled {
 }
 
 .sync-section {
-    background: white;
+    background: var(--surface);
     padding: 16px;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 20px;
 }
 .sync-header {
@@ -486,7 +551,7 @@ button:disabled {
 }
 .sync-room-row input:not([readonly]) {
     border-color: #2196F3;
-    background: #fff;
+    background: var(--surface);
 }
 .sync-room-row button {
     padding: 8px 12px;
@@ -521,7 +586,7 @@ button:disabled {
     align-items: center;
     gap: 6px;
     font-size: 14px;
-    color: #666;
+    color: var(--text-muted);
 }
 .sync-dot {
     width: 10px;
@@ -531,10 +596,10 @@ button:disabled {
     flex-shrink: 0;
 }
 #qrScannerContainer {
-    background: white;
+    background: var(--surface);
     padding: 16px;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 20px;
 }
 #qrScannerElement {

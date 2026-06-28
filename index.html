@@ -31,7 +31,7 @@
                 <button class="modal-close" onclick="stopScanner()">&#10005;</button>
             </div>
             <div class="modal-body" style="padding:20px;">
-                <p id="scanStatus" style="margin:0 0 12px;text-align:center;font-size:14px;color:#666;">Point camera at book barcode...</p>
+                <p id="scanStatus" style="margin:0 0 12px;text-align:center;font-size:14px;color:var(--text-muted);">Point camera at book barcode...</p>
                 <div id="scanner" style="width:100%;max-width:400px;margin:0 auto;border-radius:8px;overflow:hidden;"></div>
             </div>
         </div>
@@ -66,11 +66,14 @@
                 <button id="syncJoinBtn" onclick="joinRoom()">Join Room</button>
                 <button id="syncCancelBtn" onclick="cancelSyncEdit()">Cancel</button>
             </div>
+            <div class="sync-actions" style="margin-top:4px;">
+                <button onclick="toggleDarkMode()" style="background:#555;font-size:13px;padding:8px;" id="darkModeBtn">&#127769; Dark</button>
+            </div>
         </div>
     </div>
     <div id="qrScannerContainer" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <p style="margin:0;font-size:14px;color:#666;">Point camera at QR code</p>
+            <p style="margin:0;font-size:14px;color:var(--text-muted);">Point camera at QR code</p>
             <button onclick="stopQrSyncScan()" style="padding:6px 12px;font-size:13px;background:#f44336;">&#10005;</button>
         </div>
         <div id="qrScannerElement"></div>
@@ -85,7 +88,7 @@
             <div class="modal-body" style="padding:24px;">
                 <div id="qrCodeContainer" style="margin:0 auto 16px;width:200px;height:200px;"></div>
                 <p id="qrRoomCode" style="font-family:monospace;font-size:18px;font-weight:600;margin:0 0 8px;"></p>
-                <p style="color:#666;font-size:13px;margin:0;">Scan with another device to join this sync room</p>
+                <p style="color:var(--text-muted);font-size:13px;margin:0;">Scan with another device to join this sync room</p>
             </div>
         </div>
     </div>
@@ -258,6 +261,27 @@
             }
             document.getElementById('qrScannerContainer').style.display = 'none'
         }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme)
+            localStorage.setItem('isbnscanner-theme', theme)
+            const btn = document.getElementById('darkModeBtn')
+            if (btn) btn.innerHTML = theme === 'dark' ? '&#127769; Light' : '&#127769; Dark'
+        }
+
+        window.toggleDarkMode = function() {
+            const current = document.documentElement.getAttribute('data-theme')
+            applyTheme(current === 'dark' ? 'light' : 'dark')
+        }
+
+        ;(function initTheme() {
+            const saved = localStorage.getItem('isbnscanner-theme')
+            if (saved) {
+                document.documentElement.setAttribute('data-theme', saved)
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark')
+            }
+        })()
 
         async function main() {
             try {
