@@ -1,8 +1,10 @@
-const CACHE_NAME = 'isbn-scanner-v5';
+const CACHE_NAME = 'isbn-scanner-v6';
 const ASSETS = [
     'index.html',
     'bookLookup.js',
     'scanner.js',
+    'sync.js',
+    'styles.css',
     'manifest.json',
     'icon-192.png',
     'icon-512.png'

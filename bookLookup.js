@@ -1,74 +1,7 @@
-// IndexedDB setup
-const DB_NAME = 'ISBNScannerDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'books';
-
-let db = null;
-
-function initDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            db = request.result;
-            resolve(db);
-        };
-        
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                const store = db.createObjectStore(STORE_NAME, { keyPath: 'isbn' });
-                store.createIndex('title', 'title', { unique: false });
-                store.createIndex('addedAt', 'addedAt', { unique: false });
-            }
-        };
-    });
-}
-
-function getAllBooks() {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readonly');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
-        
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-function saveBook(bookData) {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.put(bookData);
-        
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-    });
-}
-
-function deleteBook(isbn) {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.delete(isbn);
-        
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-    });
-}
-
-function clearAllBooks() {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.clear();
-        
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-    });
-}
+async function getAllBooks() { return window.syncAPI.getAllBooks() }
+async function saveBook(d) { return window.syncAPI.saveBook(d) }
+async function deleteBook(i) { return window.syncAPI.deleteBook(i) }
+async function clearAllBooks() { return window.syncAPI.clearAllBooks() }
 
 const providers = [
     {
@@ -292,19 +225,16 @@ async function handleImport(input) {
             const imported = JSON.parse(e.target.result);
             if (!Array.isArray(imported)) throw new Error('Invalid format');
 
-            const existing = await getAllBooks();
+            const existing = window.syncAPI.getAllBooks();
             const existingISBNs = new Set(existing.map(b => b.isbn));
+            const newBooks = imported.filter(b => !existingISBNs.has(b.isbn));
             
-            let importedCount = 0;
-            for (const book of imported) {
-                if (!existingISBNs.has(book.isbn)) {
-                    await saveBook(book);
-                    importedCount++;
-                }
+            if (newBooks.length > 0) {
+                window.syncAPI.saveBooks(newBooks);
             }
             
             loadCollection();
-            alert(`Imported ${importedCount} new book(s)!`);
+            alert(`Imported ${newBooks.length} new book(s)!`);
         } catch (err) {
             console.error('Import error:', err);
             alert('Invalid file format');
@@ -319,98 +249,87 @@ let currentModalISBN = null;
 
 async function openBookModal(isbn) {
     try {
-        const transaction = db.transaction([STORE_NAME], 'readonly');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.get(isbn);
-        
-        request.onsuccess = () => {
-            const book = request.result;
-            if (!book) return;
-            
-            currentModalISBN = isbn;
-            
-            // Set title
-            document.getElementById('modalTitle').textContent = book.title || 'Unknown Title';
-            
-            // Set cover
-            const coverDiv = document.getElementById('modalCover');
-            if (book.cover) {
-                coverDiv.innerHTML = `<img src="${book.cover}" alt="${book.title}">`;
-            } else {
-                coverDiv.innerHTML = '<div style="font-size: 80px;">📖</div>';
-            }
-            
-            // Set info
-            const infoDiv = document.getElementById('modalInfo');
-            let infoHtml = '';
-            
-            if (book.authors) {
-                infoHtml += `<div class="modal-info-item">
-                    <div class="modal-info-label">Author:</div>
-                    <div class="modal-info-value">${book.authors}</div>
-                </div>`;
-            }
-            
-            if (book.isbn) {
-                infoHtml += `<div class="modal-info-item">
-                    <div class="modal-info-label">ISBN:</div>
-                    <div class="modal-info-value">${book.isbn}</div>
-                </div>`;
-            }
-            
-            if (book.publisher) {
-                infoHtml += `<div class="modal-info-item">
-                    <div class="modal-info-label">Publisher:</div>
-                    <div class="modal-info-value">${book.publisher}</div>
-                </div>`;
-            }
-            
-            if (book.publishedDate) {
-                infoHtml += `<div class="modal-info-item">
-                    <div class="modal-info-label">Published:</div>
-                    <div class="modal-info-value">${book.publishedDate}</div>
-                </div>`;
-            }
-            
-            if (book.pageCount) {
-                infoHtml += `<div class="modal-info-item">
-                    <div class="modal-info-label">Pages:</div>
-                    <div class="modal-info-value">${book.pageCount}</div>
-                </div>`;
-            }
-            
-            if (book.source) {
-                infoHtml += `<div class="modal-info-item">
-                    <div class="modal-info-label">Source:</div>
-                    <div class="modal-info-value">${book.source}</div>
-                </div>`;
-            }
-            
-            if (book.addedAt) {
-                const date = new Date(book.addedAt).toLocaleDateString();
-                infoHtml += `<div class="modal-info-item">
-                    <div class="modal-info-label">Added:</div>
-                    <div class="modal-info-value">${date}</div>
-                </div>`;
-            }
-            
-            infoDiv.innerHTML = infoHtml;
-            
-            // Set description
-            const descDiv = document.getElementById('modalDescription');
-            if (book.description) {
-                descDiv.style.display = 'block';
-                descDiv.innerHTML = `<strong>Description:</strong><br>${book.description}`;
-            } else {
-                descDiv.style.display = 'none';
-            }
-            
-            // Show modal
-            document.getElementById('bookModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        };
+        const book = window.syncAPI.getBook(isbn)
+        if (!book) return
+
+        currentModalISBN = isbn
+
+        document.getElementById('modalTitle').textContent = book.title || 'Unknown Title'
+
+        const coverDiv = document.getElementById('modalCover')
+        if (book.cover) {
+            coverDiv.innerHTML = `<img src="${book.cover}" alt="${book.title}">`
+        } else {
+            coverDiv.innerHTML = '<div style="font-size: 80px;">📖</div>'
+        }
+
+        const infoDiv = document.getElementById('modalInfo')
+        let infoHtml = ''
+
+        if (book.authors) {
+            infoHtml += `<div class="modal-info-item">
+                <div class="modal-info-label">Author:</div>
+                <div class="modal-info-value">${book.authors}</div>
+            </div>`
+        }
+
+        if (book.isbn) {
+            infoHtml += `<div class="modal-info-item">
+                <div class="modal-info-label">ISBN:</div>
+                <div class="modal-info-value">${book.isbn}</div>
+            </div>`
+        }
+
+        if (book.publisher) {
+            infoHtml += `<div class="modal-info-item">
+                <div class="modal-info-label">Publisher:</div>
+                <div class="modal-info-value">${book.publisher}</div>
+            </div>`
+        }
+
+        if (book.publishedDate) {
+            infoHtml += `<div class="modal-info-item">
+                <div class="modal-info-label">Published:</div>
+                <div class="modal-info-value">${book.publishedDate}</div>
+            </div>`
+        }
+
+        if (book.pageCount) {
+            infoHtml += `<div class="modal-info-item">
+                <div class="modal-info-label">Pages:</div>
+                <div class="modal-info-value">${book.pageCount}</div>
+            </div>`
+        }
+
+        if (book.source) {
+            infoHtml += `<div class="modal-info-item">
+                <div class="modal-info-label">Source:</div>
+                <div class="modal-info-value">${book.source}</div>
+            </div>`
+        }
+
+        if (book.addedAt) {
+            const date = new Date(book.addedAt).toLocaleDateString()
+            infoHtml += `<div class="modal-info-item">
+                <div class="modal-info-label">Added:</div>
+                <div class="modal-info-value">${date}</div>
+            </div>`
+        }
+
+        infoDiv.innerHTML = infoHtml
+
+        const descDiv = document.getElementById('modalDescription')
+        if (book.description) {
+            descDiv.style.display = 'block'
+            descDiv.innerHTML = `<strong>Description:</strong><br>${book.description}`
+        } else {
+            descDiv.style.display = 'none'
+        }
+
+        document.getElementById('bookModal').classList.add('active')
+        document.body.style.overflow = 'hidden'
     } catch (error) {
-        console.error('Error opening modal:', error);
+        console.error('Error opening modal:', error)
     }
 }
 
