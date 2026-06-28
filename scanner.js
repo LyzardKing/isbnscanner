@@ -10,14 +10,15 @@ function stopScanner() {
         }).catch(() => {});
     }
     isScanning = false;
-    document.getElementById('scanner-container').style.display = 'none';
+    document.getElementById('scannerModal').classList.remove('active');
+    document.body.style.overflow = '';
     document.getElementById('scanBtn').textContent = '📷 Scan';
     document.getElementById('scanStatus').textContent = '';
 }
 
 function startScanner() {
-    const container = document.getElementById('scanner-container');
-    container.style.display = 'block';
+    document.getElementById('scannerModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
     document.getElementById('scanBtn').textContent = '⏹️ Stop';
     document.getElementById('scanStatus').textContent = 'Point camera at book barcode...';
     

@@ -23,9 +23,17 @@
         </div>
     </div>
     
-    <div id="scanner-container" style="display:none;">
-        <p id="scanStatus">Point camera at book barcode (ISBN)...</p>
-        <div id="scanner"></div>
+    <div id="scannerModal" class="modal" onclick="if(event.target==this)stopScanner()">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2 style="margin:0;">Scan ISBN</h2>
+                <button class="modal-close" onclick="stopScanner()">✕</button>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <p id="scanStatus" style="margin:0 0 12px;text-align:center;font-size:14px;color:#666;">Point camera at book barcode...</p>
+                <div id="scanner" style="width:100%;max-width:400px;margin:0 auto;border-radius:8px;overflow:hidden;"></div>
+            </div>
+        </div>
     </div>
     
     <div id="result"></div>
@@ -66,6 +74,7 @@
         </div>
         <div id="qrScannerElement"></div>
     </div>
+    <div id="toast"></div>
     <div id="qrModal" class="modal" onclick="if(event.target==this)closeQrModal()">
         <div class="modal-content" style="max-width:360px;text-align:center;">
             <div class="modal-header">
@@ -103,6 +112,23 @@
     <script src="scanner.js"></script>
     <script type="module">
         import { initialize } from './sync.js'
+
+        window.showToast = function(msg, type) {
+            const container = document.getElementById('toast')
+            const el = document.createElement('div')
+            el.className = 'toast-msg ' + (type || 'info')
+            el.textContent = msg
+            container.appendChild(el)
+            setTimeout(() => { if (el.parentNode) el.remove() }, 2500)
+        }
+
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('syncPanel')
+            const badge = document.getElementById('syncBadge')
+            if (panel && panel.style.display !== 'none' && !panel.contains(e.target) && !badge.contains(e.target)) {
+                panel.style.display = 'none'
+            }
+        })
 
         window.toggleSyncPanel = function() {
             const panel = document.getElementById('syncPanel')
@@ -169,7 +195,7 @@
                 navigator.share({ title: 'Join my book collection', text: `Join my ISBN Scanner sync room: ${room}` })
             } else {
                 navigator.clipboard.writeText(room)
-                    .then(() => alert('Room code copied: ' + room))
+                    .then(() => showToast('Room code copied!', 'success'))
                     .catch(() => prompt('Share this room code with another device:', room))
             }
         }

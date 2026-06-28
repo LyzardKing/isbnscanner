@@ -133,7 +133,13 @@ function displayBook(book, source) {
         html += '<p>' + desc + '</p>';
     }
     
-    html += '<button onclick="saveToCollection()">➕ Add to Collection</button>';
+    const isbn = document.getElementById('isbnInput').value.replace(/-/g, '');
+    const exists = window.syncAPI && window.syncAPI.getBook(isbn);
+    if (exists) {
+        html += '<button disabled style="background:#4CAF50;opacity:0.6;">✔ Already in Collection</button>';
+    } else {
+        html += '<button onclick="saveToCollection()">➕ Add to Collection</button>';
+    }
     html += '</div>';
     
     document.getElementById('result').innerHTML = html;
@@ -158,11 +164,11 @@ async function saveToCollection() {
 
     try {
         await saveBook(bookData);
-        alert('Added to collection!');
+        showToast('Added to collection!', 'success');
         loadCollection();
     } catch (error) {
         console.error('Error saving book:', error);
-        alert('Failed to save book to collection');
+        showToast('Failed to save book to collection', 'error');
     }
 }
 
@@ -171,7 +177,11 @@ async function loadCollection() {
 
     try {
         const collection = await getAllBooks();
-        
+        const heading = document.querySelector('h2')
+        heading.textContent = collection.length > 0
+            ? `My Collection (${collection.length})`
+            : 'My Collection'
+
         if (collection.length === 0) {
             collectionDiv.innerHTML = '<div class="empty-state">📚 No books in collection yet.<br>Search and add your first book!</div>';
             return;
@@ -212,7 +222,7 @@ async function removeFromCollection(isbn) {
         loadCollection();
     } catch (error) {
         console.error('Error removing book:', error);
-        alert('Failed to remove book');
+        showToast('Failed to remove book', 'error');
     }
 }
 
@@ -228,7 +238,7 @@ async function exportCollection() {
         URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Error exporting collection:', error);
-        alert('Failed to export collection');
+        showToast('Failed to export collection', 'error');
     }
 }
 
@@ -255,10 +265,10 @@ async function handleImport(input) {
             }
             
             loadCollection();
-            alert(`Imported ${newBooks.length} new book(s)!`);
+            showToast(`Imported ${newBooks.length} new book(s)!`, 'success');
         } catch (err) {
             console.error('Import error:', err);
-            alert('Invalid file format');
+            showToast('Invalid file format', 'error');
         }
     };
     reader.readAsText(file);
@@ -272,7 +282,7 @@ async function resyncCollection() {
     const missing = collection.filter(b => !b.description);
 
     if (missing.length === 0) {
-        alert('All books already have descriptions!');
+        showToast('All books already have descriptions!', 'info');
         return;
     }
 
@@ -435,7 +445,7 @@ async function deleteFromModal() {
         loadCollection();
     } catch (error) {
         console.error('Error removing book:', error);
-        alert('Failed to remove book');
+        showToast('Failed to remove book', 'error');
     }
 }
 
