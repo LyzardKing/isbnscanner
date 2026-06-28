@@ -449,6 +449,33 @@ async function deleteFromModal() {
     }
 }
 
+async function resyncBook(isbn) {
+    const book = window.syncAPI.getBook(isbn);
+    if (!book) return;
+
+    if (book.description) {
+        showToast('This book already has a description!', 'info');
+        return;
+    }
+
+    for (const provider of providers) {
+        try {
+            const data = await provider.search(book.isbn);
+            if (data && data.description) {
+                window.syncAPI.saveBook({ ...book, description: data.description });
+                showToast('Description updated!', 'success');
+                openBookModal(isbn);
+                loadCollection();
+                return;
+            }
+        } catch (e) {
+            console.error(`${provider.name} error for ${book.isbn}:`, e);
+        }
+    }
+
+    showToast('No description found for this book.', 'error');
+}
+
 // Close modal on Escape key
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
