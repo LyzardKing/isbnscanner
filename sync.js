@@ -61,7 +61,7 @@ function disconnect() {
 export async function initialize() {
   doc = new Y.Doc()
   booksMap = doc.getMap('books')
-  settingsMap = doc.getMap('settings')
+  const settingsMap = doc.getMap('settings')
   persistence = new IndexeddbPersistence('isbnscanner-yjs', doc)
   await new Promise(r => persistence.on('synced', r))
 
