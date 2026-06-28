@@ -34,6 +34,7 @@
     <div class="export-import-group">
         <button onclick="exportCollection()">💾 Export</button>
         <button onclick="importCollection()">📥 Import</button>
+        <button id="resyncBtn" onclick="resyncCollection()">🔄 Resync</button>
     </div>
     <input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(this)">
     <div id="syncPanel" class="sync-dropdown" style="display:none;">

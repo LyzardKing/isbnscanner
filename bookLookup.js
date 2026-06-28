@@ -41,13 +41,34 @@ const providers = [
             }
 
             const book = data[bookKey];
+            let description = null;
+
+            try {
+                if (book.key) {
+                    const editionRes = await fetch(`https://openlibrary.org${book.key}.json`);
+                    const editionData = await editionRes.json();
+                    const worksKey = editionData.works?.[0]?.key;
+                    if (worksKey) {
+                        const workRes = await fetch(`https://openlibrary.org${worksKey}.json`);
+                        const workData = await workRes.json();
+                        if (workData.description) {
+                            description = typeof workData.description === 'string'
+                                ? workData.description
+                                : (workData.description.value || null);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Open Library description fetch failed:', e);
+            }
+
             return {
                 title: book.title,
                 authors: book.authors ? book.authors.map(a => a.name) : [],
                 publisher: book.publishers ? book.publishers[0].name : null,
                 publishedDate: book.publish_date,
                 pageCount: book.number_of_pages,
-                description: null,
+                description,
                 cover: book.cover ? book.cover.small : null
             };
         }
@@ -242,6 +263,64 @@ async function handleImport(input) {
     };
     reader.readAsText(file);
     input.value = '';
+}
+
+let _resyncCancelled = false;
+
+async function resyncCollection() {
+    const collection = window.syncAPI.getAllBooks();
+    const missing = collection.filter(b => !b.description);
+
+    if (missing.length === 0) {
+        alert('All books already have descriptions!');
+        return;
+    }
+
+    _resyncCancelled = false;
+    const btn = document.getElementById('resyncBtn');
+    btn.textContent = '⏹ Stop';
+    btn.onclick = () => { _resyncCancelled = true; };
+
+    const resultDiv = document.getElementById('result');
+    let updated = 0;
+
+    for (let i = 0; i < missing.length; i++) {
+        if (_resyncCancelled) break;
+
+        const book = missing[i];
+        resultDiv.innerHTML = `<div class="loading">🔄 Resyncing ${i + 1}/${missing.length}: ${book.title || book.isbn}...</div>`;
+
+        for (const provider of providers) {
+            try {
+                const data = await provider.search(book.isbn);
+                if (data) {
+                    const updates = {};
+                    if (data.description) updates.description = data.description;
+                    if (Object.keys(updates).length > 0) {
+                        window.syncAPI.saveBook({ ...book, ...updates });
+                        updated++;
+                    }
+                    break;
+                }
+            } catch (e) {
+                console.error(`${provider.name} error for ${book.isbn}:`, e);
+            }
+        }
+
+        if (i < missing.length - 1 && !_resyncCancelled) {
+            await new Promise(r => setTimeout(r, 600));
+        }
+    }
+
+    btn.textContent = '🔄 Resync';
+    btn.onclick = resyncCollection;
+    loadCollection();
+
+    resultDiv.innerHTML = _resyncCancelled
+        ? `<div class="loading">⏹ Resync stopped. Updated ${updated} book(s).</div>`
+        : `<div class="loading">✅ Resync complete. Updated ${updated} book(s).</div>`;
+
+    setTimeout(() => { resultDiv.innerHTML = ''; }, 4000);
 }
 
 // Modal functions
