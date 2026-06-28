@@ -106,7 +106,9 @@ const providers = [
     {
         name: 'Google Books',
         search: async function(isbn) {
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+            const key = googleBooksKey();
+            const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${key ? '&key=' + key : ''}`;
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`Google Books error: ${response.status}`);
             }
@@ -129,7 +131,9 @@ const providers = [
         },
         searchByTitle: async function(query) {
             const q = encodeURIComponent(query).replace(/%20/g, '+');
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
+            const key = googleBooksKey();
+            const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10${key ? '&key=' + key : ''}`;
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`Google Books error: ${response.status}`);
             }
@@ -166,6 +170,10 @@ let currentBook = null;
 let currentSource = null;
 
 let _lastSearchResults = null;
+
+function googleBooksKey() {
+    return (window.syncAPI && window.syncAPI.getSetting && window.syncAPI.getSetting('googleBooksApiKey')) || '';
+}
 
 async function lookupBook() {
     const query = document.getElementById('isbnInput').value.trim();
@@ -213,17 +221,40 @@ async function lookupBook() {
     currentSource = null;
     _lastSearchResults = null;
 
-    for (const provider of providers) {
-        try {
-            const books = await provider.searchByTitle(query);
-            if (books && books.length > 0) {
-                _lastSearchResults = { books, source: provider.name };
-                displayBookList(books, provider.name);
-                return;
+    const titleResults = await Promise.all(
+        providers.map(async (provider) => {
+            try {
+                const books = await provider.searchByTitle(query);
+                return { books: books || [], source: provider.name };
+            } catch (error) {
+                console.error(`${provider.name} error:`, error);
+                return { books: [], source: provider.name };
             }
-        } catch (error) {
-            console.error(`${provider.name} error:`, error);
-        }
+        })
+    );
+
+    const allBooks = titleResults.flatMap(r =>
+        r.books.map(b => ({ ...b, _source: r.source }))
+    );
+
+    if (allBooks.length > 0) {
+        const q = query.toLowerCase();
+        allBooks.sort((a, b) => {
+            const titleA = (a.title || '').toLowerCase();
+            const titleB = (b.title || '').toLowerCase();
+            const aExact = titleA === q;
+            const bExact = titleB === q;
+            const aStarts = titleA.startsWith(q);
+            const bStarts = titleB.startsWith(q);
+            const aIncludes = titleA.includes(q);
+            const bIncludes = titleB.includes(q);
+            const scoreA = aExact ? 3 : aStarts ? 2 : aIncludes ? 1 : 0;
+            const scoreB = bExact ? 3 : bStarts ? 2 : bIncludes ? 1 : 0;
+            return scoreB - scoreA;
+        });
+        _lastSearchResults = allBooks;
+        displayBookList(allBooks);
+        return;
     }
 
     resultDiv.innerHTML = '<div class="book-card"><p style="color: #ff9800;">&#128218; No books found.</p></div>';
@@ -266,9 +297,8 @@ function displayBook(book, source) {
     document.getElementById('result').innerHTML = html;
 }
 
-function displayBookList(books, source) {
-    let html = `<div class="source-tag" style="margin:16px 16px 0;">Source: ${source}</div>`;
-    html += '<div class="collection-grid" style="padding:16px;">';
+function displayBookList(books) {
+    let html = '<div class="collection-grid" style="padding:16px;">';
 
     books.forEach((book, i) => {
         const coverImg = book.cover 
@@ -283,7 +313,9 @@ function displayBookList(books, source) {
         html += `<div class="collection-item">
             ${coverImg}
             <div class="collection-item-info">
-                <div class="collection-item-title">${book.title || 'Unknown Title'}</div>
+                <div class="collection-item-title">${book.title || 'Unknown Title'}
+                    <span class="source-tag" style="font-size:0.7em;vertical-align:middle;margin-left:6px;">${book._source}</span>
+                </div>
                 <div class="collection-item-author">${book.authors ? book.authors.join(', ') : 'Unknown Author'}</div>
             </div>
             ${addBtn}
@@ -324,10 +356,10 @@ async function saveToCollection() {
 async function saveFromSearchList(index) {
     if (!_lastSearchResults) return;
 
-    const entry = _lastSearchResults.books[index];
-    const source = _lastSearchResults.source;
+    const entry = _lastSearchResults[index];
     if (!entry) return;
 
+    const source = entry._source;
     let isbn = entry.isbn;
 
     if (!isbn && entry.coverEditionKey) {
@@ -345,7 +377,7 @@ async function saveFromSearchList(index) {
         return;
     }
 
-    _lastSearchResults.books[index] = { ...entry, isbn };
+    _lastSearchResults[index] = { ...entry, isbn };
 
     const bookData = {
         isbn,
@@ -364,7 +396,7 @@ async function saveFromSearchList(index) {
         await saveBook(bookData);
         showToast('Added to collection!', 'success');
         loadCollection();
-        displayBookList(_lastSearchResults.books, _lastSearchResults.source);
+        displayBookList(_lastSearchResults);
     } catch (error) {
         console.error('Error saving book:', error);
         showToast('Failed to save book to collection', 'error');

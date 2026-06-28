@@ -61,6 +61,7 @@ function disconnect() {
 export async function initialize() {
   doc = new Y.Doc()
   booksMap = doc.getMap('books')
+  settingsMap = doc.getMap('settings')
   persistence = new IndexeddbPersistence('isbnscanner-yjs', doc)
   await new Promise(r => persistence.on('synced', r))
 
@@ -68,6 +69,7 @@ export async function initialize() {
   connect(loadRoom(), pwd)
 
   booksMap.observeDeep(() => { changeListeners.forEach(f => f()) })
+  settingsMap.observeDeep(() => { changeListeners.forEach(f => f()) })
 
   window.syncAPI = {
     getAllBooks: () => Array.from(booksMap.values()),
@@ -76,6 +78,8 @@ export async function initialize() {
     saveBooks: books => { doc.transact(() => { books.forEach(b => booksMap.set(b.isbn, b)) }) },
     deleteBook: isbn => { doc.transact(() => { booksMap.delete(isbn) }) },
     clearAllBooks: () => { doc.transact(() => { booksMap.clear() }) },
+    getSetting: key => settingsMap.get(key),
+    setSetting: (key, value) => { doc.transact(() => { settingsMap.set(key, value) }) },
     getRoom: () => currentRoom,
     getPassword: () => currentPassword,
     getRoomCode: () => currentRoom ? `${currentRoom}|${currentPassword}` : null,
