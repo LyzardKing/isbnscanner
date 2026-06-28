@@ -11,14 +11,14 @@ function stopScanner() {
     }
     isScanning = false;
     document.getElementById('scanner-container').style.display = 'none';
-    document.getElementById('scanBtn').textContent = 'Scan Barcode';
+    document.getElementById('scanBtn').textContent = '📷 Scan';
     document.getElementById('scanStatus').textContent = '';
 }
 
 function startScanner() {
     const container = document.getElementById('scanner-container');
     container.style.display = 'block';
-    document.getElementById('scanBtn').textContent = 'Stop Scanning';
+    document.getElementById('scanBtn').textContent = '⏹️ Stop';
     document.getElementById('scanStatus').textContent = 'Point camera at book barcode...';
     
     html5QrCode = new Html5Qrcode('scanner');
@@ -49,7 +49,7 @@ function startScanner() {
             
             console.log('Scanned ISBN:', code);
             document.getElementById('isbnInput').value = code;
-            document.getElementById('scanStatus').textContent = 'Found: ' + code;
+            document.getElementById('scanStatus').textContent = '✓ Found: ' + code;
             
             setTimeout(() => {
                 stopScanner();
@@ -60,7 +60,7 @@ function startScanner() {
             // Ignore scan errors
         }
     ).catch(err => {
-        document.getElementById('scanStatus').textContent = 'Camera error: ' + err;
+        document.getElementById('scanStatus').textContent = '❌ Camera error: ' + err;
         stopScanner();
     });
 }

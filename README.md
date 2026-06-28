@@ -13,10 +13,10 @@ A simple web app to look up books by ISBN and build a personal collection.
 ## Tech Stack
 
 - **HTML/CSS/JS** - Vanilla, no frameworks
-- **QuaggaJS** - Barcode scanning (open source, CDN)
+- **html5-qrcode** - Barcode scanning (open source, CDN)
 - **Google Books API** - Primary book data source (free, no auth)
 - **Open Library API** - Backup source (open data)
-- **localStorage** - Browser-based collection database
+- **Service Worker Cache** - Collection stored in cache (survives refresh)
 
 ## Why These Choices
 
@@ -33,3 +33,7 @@ A simple web app to look up books by ISBN and build a personal collection.
 4. Use Export/Import to backup or share collection
 
 Note: Camera requires HTTPS or localhost.
+
+## Updating the App
+
+To update the UI while keeping the collection intact, bump `CACHE_NAME` in `sw.js` (e.g., `isbn-scanner-v1` → `isbn-scanner-v2`). The collection stays in the old cache and persists across updates.

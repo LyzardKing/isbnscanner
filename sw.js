@@ -1,14 +1,29 @@
-const CACHE_NAME = 'isbn-scanner-v1';
+const CACHE_NAME = 'isbn-scanner-v5';
 const ASSETS = [
     'index.html',
     'bookLookup.js',
     'scanner.js',
-    'manifest.json'
+    'manifest.json',
+    'icon-192.png',
+    'icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    );
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames
+                    .filter((name) => name.startsWith('isbn-scanner-') && name !== CACHE_NAME)
+                    .map((name) => caches.delete(name))
+            );
+        }).then(() => self.clients.claim())
     );
 });
 
